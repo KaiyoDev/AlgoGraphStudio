@@ -43,5 +43,9 @@ export enum AlgorithmType {
   DIJKSTRA = 'dijkstra',
   FORD_FULKERSON = 'ford_fulkerson',
   FLEURY = 'fleury',
-  HIERHOLZER = 'hierholzer'
+  HIERHOLZER = 'hierholzer',
+  BELLMAN_FORD = 'bellman_ford',
+  BFS = 'bfs',
+  DFS = 'dfs',
+  BFS_COLORING = 'bfs_coloring'
 }
