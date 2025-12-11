@@ -190,14 +190,12 @@ export const Sidebar: React.FC = () => {
                      </div>
                    </button>
                    
-                   {/* Hiển thị modal ngay dưới nút Dijkstra khi click */}
+                   {/* Hiển thị form config ngay dưới nút Dijkstra trong sidebar */}
                    {isDijkstra && showDijkstraConfig && (
-                     <div className="absolute top-full left-0 right-0 z-50 mt-2">
-                       <DijkstraConfigModal
-                         onConfirm={handleDijkstraConfirm}
-                         onClose={() => setShowDijkstraConfig(false)}
-                       />
-                     </div>
+                     <DijkstraConfigModal
+                       onConfirm={handleDijkstraConfirm}
+                       onClose={() => setShowDijkstraConfig(false)}
+                     />
                    )}
                  </div>
                );
