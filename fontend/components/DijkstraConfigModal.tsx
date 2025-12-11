@@ -67,119 +67,87 @@ export const DijkstraConfigModal: React.FC<DijkstraConfigModalProps> = ({ onConf
   return (
     <div 
       ref={modalRef}
-      className="bg-gray-800/50 border-t border-blue-500/50 rounded-b-xl p-4 mt-2 overflow-hidden"
+      className="bg-gray-800/50 border-t border-blue-500/50 rounded-b-xl p-3 mt-2 overflow-hidden"
       style={{
         animation: 'fadeInSlideDown 0.3s ease-out forwards'
       }}
     >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h3 className="text-sm font-bold text-blue-300">
-              ⚡ Cấu hình
-            </h3>
-            <p className="text-[10px] text-gray-500 mt-0.5">Chọn nút nguồn và nút đích</p>
-          </div>
-          <button
-            onClick={handleClose}
-            className="text-gray-500 hover:text-gray-300 transition-colors p-1 rounded hover:bg-gray-700/50"
-            title="Đóng"
+      {/* Layout ngang: Source, Target, Preview và nút bấm cùng một hàng */}
+      <div className="flex items-end gap-2 flex-wrap">
+        {/* Source Node */}
+        <div className="flex-1 min-w-[120px]">
+          <label className="block text-[10px] font-semibold text-gray-400 mb-1">
+            Nguồn <span className="text-red-400">*</span>
+          </label>
+          <select
+            value={sourceId}
+            onChange={(e) => setSourceId(e.target.value)}
+            className="w-full bg-gray-900/50 border border-gray-700/50 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all hover:border-gray-600"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+            <option value="">-- Chọn --</option>
+            {sortedNodes.map(node => (
+              <option key={node.id} value={node.id}>
+                {node.id} {node.label ? `(${node.label})` : ''}
+              </option>
+            ))}
+          </select>
         </div>
 
-        {/* Form */}
-        <div className="space-y-2.5">
-          {/* Source Node */}
-          <div>
-            <label className="block text-[11px] font-semibold text-gray-400 mb-1.5">
-              Nút nguồn <span className="text-red-400">*</span>
-            </label>
-            <select
-              value={sourceId}
-              onChange={(e) => setSourceId(e.target.value)}
-              className="w-full bg-gray-900/50 border border-gray-700/50 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all hover:border-gray-600"
-            >
-              <option value="">-- Chọn nút nguồn --</option>
-              {sortedNodes.map(node => (
-                <option key={node.id} value={node.id}>
-                  {node.id} {node.label ? `(${node.label})` : ''}
-                </option>
-              ))}
-            </select>
-            {sourceId && (
-              <p className="text-[10px] text-green-400 mt-1">
-                ✓ <span className="font-semibold">{sourceId}</span>
-              </p>
-            )}
-          </div>
-
-          {/* Target Node */}
-          <div>
-            <label className="block text-[11px] font-semibold text-gray-400 mb-1.5">
-              Nút đích <span className="text-gray-500 text-[10px]">(Tùy chọn)</span>
-            </label>
-            <select
-              value={targetId}
-              onChange={(e) => setTargetId(e.target.value)}
-              className="w-full bg-gray-900/50 border border-gray-700/50 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all hover:border-gray-600"
-            >
-              <option value="">-- Để trống để tìm đến tất cả --</option>
-              {sortedNodes.map(node => (
-                <option key={node.id} value={node.id} disabled={node.id === sourceId}>
-                  {node.id} {node.label ? `(${node.label})` : ''}
-                </option>
-              ))}
-            </select>
-            {targetId ? (
-              <p className="text-[10px] text-cyan-400 mt-1">
-                ✓ Đích: <span className="font-semibold">{targetId}</span>
-              </p>
-            ) : (
-              <p className="text-[10px] text-gray-500 mt-1">
-                💡 Để trống để tìm đường đến tất cả
-              </p>
-            )}
-          </div>
-
-          {/* Preview */}
-          {sourceId && (
-            <div className="bg-blue-900/20 border border-blue-500/20 rounded-lg p-2">
-              <p className="text-[10px] text-blue-300 font-semibold mb-0.5">📋 Xem trước:</p>
-              <p className="text-[11px] text-blue-200">
-                <span className="font-bold text-green-300">{sourceId}</span>
-                {targetId ? (
-                  <>
-                    {' → '}
-                    <span className="font-bold text-cyan-300">{targetId}</span>
-                  </>
-                ) : (
-                  <> → tất cả</>
-                )}
-              </p>
-            </div>
-          )}
+        {/* Arrow */}
+        <div className="flex-shrink-0 pt-5">
+          <span className="text-blue-400 text-lg">→</span>
         </div>
+
+        {/* Target Node */}
+        <div className="flex-1 min-w-[120px]">
+          <label className="block text-[10px] font-semibold text-gray-400 mb-1">
+            Đích <span className="text-gray-500 text-[9px]">(Tùy chọn)</span>
+          </label>
+          <select
+            value={targetId}
+            onChange={(e) => setTargetId(e.target.value)}
+            className="w-full bg-gray-900/50 border border-gray-700/50 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all hover:border-gray-600"
+          >
+            <option value="">-- Tất cả --</option>
+            {sortedNodes.map(node => (
+              <option key={node.id} value={node.id} disabled={node.id === sourceId}>
+                {node.id} {node.label ? `(${node.label})` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Preview nhỏ */}
+        {sourceId && (
+          <div className="flex-shrink-0 px-2 py-1.5 bg-blue-900/20 border border-blue-500/20 rounded-lg">
+            <p className="text-[10px] text-blue-300 font-semibold">
+              <span className="text-green-300">{sourceId}</span>
+              {targetId ? (
+                <> → <span className="text-cyan-300">{targetId}</span></>
+              ) : (
+                <> → tất cả</>
+              )}
+            </p>
+          </div>
+        )}
 
         {/* Actions */}
-        <div className="flex gap-2 mt-3">
+        <div className="flex gap-2 flex-shrink-0">
           <button
             onClick={handleClose}
-            className="flex-1 px-3 py-1.5 bg-gray-700/50 hover:bg-gray-700 border border-gray-600/50 rounded-lg text-gray-300 hover:text-white transition-all font-medium text-xs"
+            className="px-3 py-1.5 bg-gray-700/50 hover:bg-gray-700 border border-gray-600/50 rounded-lg text-gray-300 hover:text-white transition-all font-medium text-xs"
           >
             Hủy
           </button>
           <button
             onClick={handleConfirm}
             disabled={!sourceId}
-            className="flex-1 px-3 py-1.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 disabled:from-gray-700 disabled:to-gray-700 disabled:cursor-not-allowed rounded-lg text-white font-semibold transition-all text-xs"
+            className="px-4 py-1.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 disabled:from-gray-700 disabled:to-gray-700 disabled:cursor-not-allowed rounded-lg text-white font-semibold transition-all text-xs"
           >
-            Chạy →
+            Chạy
           </button>
         </div>
+      </div>
     </div>
   );
 };
