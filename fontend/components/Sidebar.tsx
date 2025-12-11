@@ -132,16 +132,34 @@ export const Sidebar: React.FC = () => {
           </button>
           
           <div 
-            className="group cursor-pointer bg-gray-800/30 hover:bg-gray-800/50 p-3 rounded-xl border border-white/5 flex items-center justify-between transition-all duration-200"
-            onClick={() => setDirected(!isDirected)}
+            className={`group p-3 rounded-xl border border-white/5 flex items-center justify-between transition-all duration-200 ${
+              edges.length > 0 
+                ? 'bg-gray-800/20 cursor-not-allowed opacity-60' 
+                : 'bg-gray-800/30 hover:bg-gray-800/50 cursor-pointer'
+            }`}
+            onClick={() => {
+              if (edges.length > 0) {
+                alert('Không thể thay đổi loại đồ thị khi đã có cạnh. Vui lòng xóa tất cả cạnh trước khi chuyển đổi.');
+                return;
+              }
+              setDirected(!isDirected);
+            }}
+            title={edges.length > 0 ? 'Không thể thay đổi loại đồ thị khi đã có cạnh' : ''}
           >
             <div className="flex flex-col">
               <span className="text-gray-200 font-semibold text-sm">Chế độ Đồ thị</span>
-              <span className="text-[10px] text-gray-500 font-medium group-hover:text-blue-400 transition-colors">
+              <span className={`text-[10px] font-medium transition-colors ${
+                edges.length > 0 
+                  ? 'text-gray-600' 
+                  : 'text-gray-500 group-hover:text-blue-400'
+              }`}>
                 {isDirected ? 'Có hướng (Directed)' : 'Vô hướng (Undirected)'}
+                {edges.length > 0 && ' (Đã khóa)'}
               </span>
             </div>
-            <div className={`w-12 h-6 rounded-full relative transition-colors duration-300 ${isDirected ? 'bg-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.5)]' : 'bg-gray-700'}`}>
+            <div className={`w-12 h-6 rounded-full relative transition-colors duration-300 ${
+              isDirected ? 'bg-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.5)]' : 'bg-gray-700'
+            } ${edges.length > 0 ? 'opacity-50' : ''}`}>
               <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-md transition-all duration-300 cubic-bezier(0.4, 0, 0.2, 1) ${isDirected ? 'translate-x-7' : 'translate-x-1'}`} />
             </div>
           </div>
