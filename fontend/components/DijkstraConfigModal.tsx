@@ -79,7 +79,10 @@ export const DijkstraConfigModal: React.FC<DijkstraConfigModalProps> = ({ onConf
   return (
     <div 
       ref={modalRef}
-      className="bg-gray-900 border border-blue-500/50 rounded-xl p-5 shadow-2xl backdrop-blur-xl transition-all duration-300 ease-out transform"
+      className="bg-gray-900 border border-blue-500/50 rounded-xl p-5 shadow-2xl backdrop-blur-xl"
+      style={{
+        animation: 'fadeInSlideDown 0.3s ease-out forwards'
+      }}
       onClick={(e) => e.stopPropagation()}
     >
         {/* Header */}
@@ -156,7 +159,7 @@ export const DijkstraConfigModal: React.FC<DijkstraConfigModalProps> = ({ onConf
 
           {/* Preview */}
           {sourceId && (
-            <div className="bg-gradient-to-r from-blue-900/30 to-cyan-900/20 border border-blue-500/30 rounded-lg p-2.5 animate-in fade-in duration-200">
+            <div className="bg-gradient-to-r from-blue-900/30 to-cyan-900/20 border border-blue-500/30 rounded-lg p-2.5 transition-all duration-200">
               <p className="text-[10px] text-blue-300/90 font-semibold mb-1">📋 Xem trước:</p>
               <p className="text-xs text-blue-200/90">
                 Từ <span className="font-bold text-green-300">{sourceId}</span>
