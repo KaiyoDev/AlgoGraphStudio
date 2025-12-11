@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { Text, Group, Arrow, Path, Circle } from 'react-konva';
 import { KonvaEventObject } from 'konva/lib/Node';
 import { useGraphStore } from '../store';
@@ -19,13 +19,18 @@ interface GraphEdgeProps {
   onDblClick: (e: KonvaEventObject<MouseEvent | TouchEvent>) => void;
   onContextMenu: (e: KonvaEventObject<PointerEvent>) => void;
   onControlPointMove: (x: number, y: number) => void;
+  onPathDragStart?: () => void; // Callback khi bắt đầu drag trên path
 }
 
 export const GraphEdge: React.FC<GraphEdgeProps> = ({
   id, sourceX, sourceY, targetX, targetY, weight, label, isDirected, color, 
-  controlPoint, isSelected, onClick, onDblClick, onContextMenu, onControlPointMove
+  controlPoint, isSelected, onClick, onDblClick, onContextMenu, onControlPointMove, onPathDragStart
 }) => {
   const { saveHistory } = useGraphStore(); // Get saveHistory action
+  const [isHovered, setIsHovered] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isPathDragging, setIsPathDragging] = useState(false);
+  const pathDragStartPosRef = useRef<{ x: number; y: number } | null>(null);
 
   const isSelfLoop = sourceX === targetX && sourceY === targetY;
   const strokeColor = color || '#94a3b8';
@@ -113,9 +118,28 @@ export const GraphEdge: React.FC<GraphEdgeProps> = ({
   const arrowX = targetX - (dx / dist) * padding;
   const arrowY = targetY - (dy / dist) * padding;
 
+  // Xử lý kéo trực tiếp trên cạnh để uốn cong
+  const handlePathMouseDown = (e: KonvaEventObject<MouseEvent>) => {
+    const evt = e.evt as MouseEvent;
+    // Chỉ kéo khi nhấn giữ chuột trái (không phải right click)
+    if (evt.button === 0) {
+      const stage = e.target.getStage();
+      if (stage) {
+        const pointer = stage.getPointerPosition();
+        if (pointer) {
+          pathDragStartPosRef.current = { x: pointer.x, y: pointer.y };
+          // Gọi callback để GraphCanvas biết edge nào đang được drag
+          if (onPathDragStart) {
+            onPathDragStart();
+          }
+        }
+      }
+    }
+  };
+
   return (
     <Group>
-       {/* The Edge Path */}
+       {/* The Edge Path - có thể kéo trực tiếp để uốn cong */}
        <Path
           data={pathData}
           stroke={strokeColor}
@@ -123,10 +147,34 @@ export const GraphEdge: React.FC<GraphEdgeProps> = ({
           hitStrokeWidth={20}
           shadowColor={isSelected ? strokeColor : undefined}
           shadowBlur={isSelected ? 5 : 0}
-          onClick={onClick} 
+          onClick={(e) => {
+            // Chỉ click khi không đang drag (kiểm tra xem có di chuyển chuột đáng kể không)
+            if (pathDragStartPosRef.current) {
+              const stage = e.target.getStage();
+              if (stage) {
+                const pointer = stage.getPointerPosition();
+                if (pointer) {
+                  const dx = Math.abs(pointer.x - pathDragStartPosRef.current.x);
+                  const dy = Math.abs(pointer.y - pathDragStartPosRef.current.y);
+                  // Nếu di chuyển ít hơn 5px, coi như là click, không phải drag
+                  if (dx < 5 && dy < 5) {
+                    onClick(e);
+                  }
+                }
+              }
+              pathDragStartPosRef.current = null;
+            } else {
+              onClick(e);
+            }
+          }}
           onTap={onClick} 
           onDblClick={onDblClick} 
           onContextMenu={onContextMenu}
+          onMouseDown={handlePathMouseDown}
+          onMouseLeave={() => {
+            setIsHovered(false);
+          }}
+          onMouseEnter={() => setIsHovered(true)}
        />
       
       {/* Arrow Head */}
@@ -177,32 +225,6 @@ export const GraphEdge: React.FC<GraphEdgeProps> = ({
         />
       </Group>
 
-      {/* Control Handle (Only if Selected) - Vẫn nằm ở Control Point thực tế để kéo */}
-      {isSelected && (
-          <Circle
-            x={cx}
-            y={cy}
-            radius={6}
-            fill="#ffffff"
-            stroke="#2563eb"
-            strokeWidth={2}
-            draggable
-            onDragStart={() => {
-                saveHistory(); // Save state before starting to drag curve
-            }}
-            onDragMove={(e) => {
-                onControlPointMove(e.target.x(), e.target.y());
-            }}
-            onMouseEnter={(e) => {
-                 e.target.getStage()!.container().style.cursor = 'move';
-                 e.target.scale({ x: 1.5, y: 1.5 });
-            }}
-            onMouseLeave={(e) => {
-                 e.target.getStage()!.container().style.cursor = 'default';
-                 e.target.scale({ x: 1, y: 1 });
-            }}
-          />
-      )}
     </Group>
   );
 };

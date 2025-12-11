@@ -162,11 +162,20 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
       };
   }),
   
-  setDirected: (isDirected) => set((state) => ({ 
-      past: [...state.past, getSnapshot(state)],
-      future: [],
-      isDirected 
-  })),
+  setDirected: (isDirected) => set((state) => {
+      // Nếu đã có edges, không cho phép thay đổi loại đồ thị
+      if (state.edges.length > 0 && isDirected !== state.isDirected) {
+          // Không thay đổi gì, giữ nguyên state
+          return state;
+      }
+      
+      // Cho phép thay đổi nếu không có edges
+      return { 
+          past: [...state.past, getSnapshot(state)],
+          future: [],
+          isDirected 
+      };
+  }),
   
   addNode: (x, y) => set((state) => {
     const adjustedX = (x - state.position.x) / state.scale;

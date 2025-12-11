@@ -140,6 +140,9 @@ export const GraphCanvas: React.FC = () => {
   const [selectionBox, setSelectionBox] = useState<{ start: {x: number, y: number}, current: {x: number, y: number} } | null>(null);
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPosition, setLastPanPosition] = useState<{x: number, y: number} | null>(null);
+  const lastRightClickRef = useRef<{ edgeId: string; time: number } | null>(null);
+  const [draggingEdgeId, setDraggingEdgeId] = useState<string | null>(null);
+  const potentialDragEdgeRef = useRef<{ edgeId: string; startPos: {x: number, y: number} } | null>(null);
   
   // Use useCallback to strictly control when setStageRef is called.
   // We access the current store state directly to avoid redundant updates if the ref hasn't changed.
@@ -302,6 +305,43 @@ export const GraphCanvas: React.FC = () => {
               });
           }
       }
+
+      // Xử lý drag edge để uốn cong
+      if (draggingEdgeId) {
+          const pointer = stage?.getPointerPosition();
+          if (pointer && stage) {
+              const x = (pointer.x - stage.x()) / stage.scaleX();
+              const y = (pointer.y - stage.y()) / stage.scaleY();
+              updateEdgeControlPoint(draggingEdgeId, x, y);
+          }
+      } else if (potentialDragEdgeRef.current) {
+          // Kiểm tra xem có di chuyển chuột đáng kể không để bắt đầu drag
+          const pointer = stage?.getPointerPosition();
+          if (pointer && stage) {
+              // Cập nhật startPos lần đầu nếu chưa có
+              if (potentialDragEdgeRef.current.startPos.x === 0 && potentialDragEdgeRef.current.startPos.y === 0) {
+                  potentialDragEdgeRef.current.startPos = { x: pointer.x, y: pointer.y };
+                  return;
+              }
+              
+              const dx = Math.abs(pointer.x - potentialDragEdgeRef.current.startPos.x);
+              const dy = Math.abs(pointer.y - potentialDragEdgeRef.current.startPos.y);
+              // Nếu di chuyển hơn 5px, bắt đầu drag
+              if (dx > 5 || dy > 5) {
+                  setDraggingEdgeId(potentialDragEdgeRef.current.edgeId);
+                  saveHistory();
+                  const edge = edges.find(e => e.id === potentialDragEdgeRef.current!.edgeId);
+                  if (edge) {
+                      const x = (pointer.x - stage.x()) / stage.scaleX();
+                      const y = (pointer.y - stage.y()) / stage.scaleY();
+                      // Tạo control point nếu chưa có
+                      if (!edge.controlPoint) {
+                          updateEdgeControlPoint(potentialDragEdgeRef.current.edgeId, x, y);
+                      }
+                  }
+              }
+          }
+      }
   };
 
   const handleStageMouseUp = (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
@@ -328,6 +368,13 @@ export const GraphCanvas: React.FC = () => {
           selectRegion(sx, sy, w, h);
           setSelectionBox(null);
       }
+
+      // Kết thúc drag edge
+      if (draggingEdgeId) {
+          setDraggingEdgeId(null);
+      }
+      // Reset potential drag
+      potentialDragEdgeRef.current = null;
   };
 
   const handleStageDblClick = (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
@@ -380,7 +427,26 @@ export const GraphCanvas: React.FC = () => {
 
   const handleEdgeDblClick = (e: KonvaEventObject<MouseEvent | TouchEvent>, edgeId: string) => {
       e.cancelBubble = true;
+      // Double left click vẫn select edge
       selectEdge(edgeId);
+  };
+
+  const handleEdgeContextMenu = (e: KonvaEventObject<PointerEvent>, edgeId: string) => {
+      e.evt.preventDefault();
+      e.cancelBubble = true;
+      
+      // Kiểm tra double right click
+      const now = Date.now();
+      if (lastRightClickRef.current && 
+          lastRightClickRef.current.edgeId === edgeId && 
+          now - lastRightClickRef.current.time < 500) {
+          // Double right click - xóa cạnh
+          deleteElement('edge', edgeId);
+          lastRightClickRef.current = null;
+      } else {
+          // Lưu lại lần click đầu tiên
+          lastRightClickRef.current = { edgeId, time: now };
+      }
   };
 
   const drawingSourceNode = drawingEdge ? nodes.find(n => n.id === drawingEdge.sourceId) : null;
@@ -445,8 +511,16 @@ export const GraphCanvas: React.FC = () => {
                 isSelected={isSelected}
                 onClick={(e) => handleEdgeClick(e, edge.id)}
                 onDblClick={(e) => handleEdgeDblClick(e, edge.id)}
-                onContextMenu={(e) => e.evt.preventDefault()}
+                onContextMenu={(e) => handleEdgeContextMenu(e, edge.id)}
                 onControlPointMove={(x, y) => updateEdgeControlPoint(edge.id, x, y)}
+                onPathDragStart={() => {
+                    // Lưu thông tin edge để bắt đầu drag khi chuột di chuyển
+                    // Stage sẽ được lấy từ handleStageMouseMove
+                    potentialDragEdgeRef.current = {
+                        edgeId: edge.id,
+                        startPos: { x: 0, y: 0 } // Sẽ được cập nhật trong handleStageMouseMove
+                    };
+                }}
               />
             );
           })}
