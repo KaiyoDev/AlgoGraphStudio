@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # Import thuật toán ở đây
 from algorithms import prim_algorithm
 from algorithms import kruskal_algorithm
+from algorithms import dijkstra_algorithm
 
 app = Flask(__name__)
 
@@ -41,6 +42,7 @@ def cors_preflight():
 ALGORITHM_FUNCTIONS = {
     "prim": prim_algorithm,
     "kruskal": kruskal_algorithm,
+    "dijkstra": dijkstra_algorithm,
 }
 
 
@@ -54,6 +56,11 @@ ALGORITHM_INFOS = [
     "id": "kruskal",
     "name": "MST - Kruskal",
     "description": "Tìm cây khung nhỏ nhất bằng Kruskal (vô hướng).",
+   },
+   {
+    "id": "dijkstra",
+    "name": "Đường đi ngắn nhất - Dijkstra",
+    "description": "Tìm đường đi ngắn nhất từ nút nguồn đến nút đích (có hướng/vô hướng).",
    }
 ]
 
@@ -72,13 +79,15 @@ def run_algorithm():
         
         # Lấy các tham số tùy chọn (kwargs) từ request
         kwargs = {}
-        if 'start_node' in data:
+        if 'start_node' in data and data['start_node'] is not None:
             kwargs['start_node'] = data['start_node']
-        if 'source' in data:
+        if 'source' in data and data['source'] is not None:
             kwargs['source'] = data['source']
-        if 'sink' in data:
+        if 'target' in data and data['target'] is not None:
+            kwargs['target'] = data['target']
+        if 'sink' in data and data['sink'] is not None:
             kwargs['sink'] = data['sink']
-        if 'max_iter' in data:
+        if 'max_iter' in data and data['max_iter'] is not None:
             kwargs['max_iter'] = data['max_iter']
 
         if not graph_data:
@@ -88,6 +97,14 @@ def run_algorithm():
             return jsonify({
                 'error': f'Thuật toán "{algorithm}" không được hỗ trợ',
                 'supported_algorithms': list(ALGORITHM_FUNCTIONS.keys())
+            }), 400
+        
+        # Kiểm tra source bắt buộc cho Dijkstra
+        if algorithm == 'dijkstra' and 'source' not in kwargs:
+            return jsonify({
+                'error': 'Thuật toán Dijkstra yêu cầu tham số "source" (nút nguồn)',
+                'required_params': ['source'],
+                'optional_params': ['target']
             }), 400
 
         # Gọi thuật toán với graph_data và kwargs

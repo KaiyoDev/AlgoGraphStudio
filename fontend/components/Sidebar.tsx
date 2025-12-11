@@ -1,27 +1,63 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useGraphStore } from '../store';
 import { AlgorithmType } from '../types';
 import { runAlgorithm } from '../services/api';
 import { GraphIOModal } from './GraphIOModal';
+import { DijkstraConfigModal } from './DijkstraConfigModal';
 
 export const Sidebar: React.FC = () => {
   const { 
     isDirected, setDirected, 
     loadSteps, nodes, edges,
     undo, redo, past, future,
-    showHelp, toggleHelp
+    showHelp, toggleHelp,
+    selectedNodeIds
   } = useGraphStore();
 
   const [loadingAlgo, setLoadingAlgo] = useState(false);
   const [showIO, setShowIO] = useState(false);
+  const [showDijkstraConfig, setShowDijkstraConfig] = useState(false);
+  const dijkstraButtonRef = useRef<HTMLDivElement>(null);
 
   const algorithms = Object.values(AlgorithmType);
 
   const handleRunAlgorithm = async (algo: AlgorithmType) => {
+    // Nếu là Dijkstra, hiển thị modal chọn nút
+    if (algo === AlgorithmType.DIJKSTRA) {
+      setShowDijkstraConfig(true);
+      return;
+    }
+
+    // Các thuật toán khác chạy bình thường
     setLoadingAlgo(true);
     try {
       const graphData = { nodes, edges, isDirected };
-      const result = await runAlgorithm(algo, graphData);
+      
+      const params: { source?: string; target?: string; start_node?: string } = {};
+      if (algo === AlgorithmType.PRIM && selectedNodeIds.length >= 1) {
+        params.start_node = selectedNodeIds[0];
+      }
+      
+      const result = await runAlgorithm(algo, graphData, Object.keys(params).length > 0 ? params : undefined);
+      loadSteps(result.steps);
+    } catch (e) {
+      alert("Lỗi khi khởi chạy thuật toán. Vui lòng kiểm tra Console.");
+    } finally {
+      setLoadingAlgo(false);
+    }
+  };
+
+  const handleDijkstraConfirm = async (source: string, target: string | undefined) => {
+    setShowDijkstraConfig(false);
+    setLoadingAlgo(true);
+    try {
+      const graphData = { nodes, edges, isDirected };
+      const params: { source: string; target?: string } = { source };
+      if (target) {
+        params.target = target;
+      }
+      
+      const result = await runAlgorithm(AlgorithmType.DIJKSTRA, graphData, params);
       loadSteps(result.steps);
     } catch (e) {
       alert("Lỗi khi khởi chạy thuật toán. Vui lòng kiểm tra Console.");
@@ -116,34 +152,56 @@ export const Sidebar: React.FC = () => {
         {/* Algorithms List */}
         <div className="space-y-3 pb-10">
            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-1">Thuật toán</p>
-           <div className="space-y-1.5">
-             {algorithms.map(algo => (
-               <button
-                 key={algo}
-                 onClick={() => handleRunAlgorithm(algo)}
-                 disabled={loadingAlgo || nodes.length === 0}
-                 className="w-full relative group overflow-hidden text-left px-4 py-3.5 bg-gray-800/20 hover:bg-gray-800 border border-transparent hover:border-gray-700/50 rounded-xl text-gray-400 hover:text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale"
-               >
-                 <div className="absolute inset-0 w-1 bg-blue-500/0 group-hover:bg-blue-500/100 transition-all duration-200 rounded-l-full" />
-                 
-                 <div className="flex items-center justify-between relative z-10">
-                   <span className="font-medium capitalize tracking-wide group-hover:translate-x-1 transition-transform duration-200">
-                     {algo.replace('_', ' ')}
-                   </span>
-                   {loadingAlgo ? (
-                      <div className="flex gap-1">
-                        <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce delay-0"/>
-                        <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce delay-100"/>
-                        <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce delay-200"/>
-                      </div>
-                   ) : (
-                      <svg className="w-4 h-4 text-gray-600 group-hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-all duration-200 -translate-x-2 group-hover:translate-x-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+           
+           <div className="space-y-1.5 relative">
+             {algorithms.map((algo, index) => {
+               const isDijkstra = algo === AlgorithmType.DIJKSTRA;
+               
+               return (
+                 <div 
+                   key={algo} 
+                   ref={isDijkstra ? dijkstraButtonRef : null}
+                   className="space-y-1 relative"
+                 >
+                   <button
+                     onClick={() => handleRunAlgorithm(algo)}
+                     disabled={loadingAlgo || nodes.length === 0}
+                     className={`w-full relative group overflow-hidden text-left px-4 py-3.5 bg-gray-800/20 hover:bg-gray-800 border border-transparent hover:border-gray-700/50 rounded-xl text-gray-400 hover:text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:grayscale ${
+                       isDijkstra && showDijkstraConfig ? 'bg-blue-900/30 border-blue-500/50' : ''
+                     }`}
+                   >
+                     <div className="absolute inset-0 w-1 bg-blue-500/0 group-hover:bg-blue-500/100 transition-all duration-200 rounded-l-full" />
+                     
+                     <div className="flex items-center justify-between relative z-10">
+                       <span className="font-medium capitalize tracking-wide group-hover:translate-x-1 transition-transform duration-200">
+                         {algo.replace('_', ' ')}
+                       </span>
+                       {loadingAlgo ? (
+                          <div className="flex gap-1">
+                            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce delay-0"/>
+                            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce delay-100"/>
+                            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce delay-200"/>
+                          </div>
+                       ) : (
+                          <svg className="w-4 h-4 text-gray-600 group-hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-all duration-200 -translate-x-2 group-hover:translate-x-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                       )}
+                     </div>
+                   </button>
+                   
+                   {/* Hiển thị modal ngay dưới nút Dijkstra */}
+                   {isDijkstra && showDijkstraConfig && (
+                     <div className="absolute top-full left-0 right-0 z-50 mt-2 transition-all duration-300 ease-out transform">
+                       <DijkstraConfigModal
+                         onConfirm={handleDijkstraConfirm}
+                         onClose={() => setShowDijkstraConfig(false)}
+                       />
+                     </div>
                    )}
                  </div>
-               </button>
-             ))}
+               );
+             })}
            </div>
         </div>
       </div>

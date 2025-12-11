@@ -40,6 +40,7 @@ export type ToolMode = 'pointer' | 'node';
 export enum AlgorithmType {
   PRIM = 'prim',
   KRUSKAL = 'kruskal',
+  DIJKSTRA = 'dijkstra',
   FORD_FULKERSON = 'ford_fulkerson',
   FLEURY = 'fleury',
   HIERHOLZER = 'hierholzer'
